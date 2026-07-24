@@ -1,0 +1,16 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: kiwi-biz-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: kiwi_admin
+      POSTGRES_PASSWORD: change_me_locally
+      POSTGRES_DB: kiwi_biz_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - kiwi_biz_pgdata:/var/lib/postgresql/data
+
+volumes:
+  kiwi_biz_pgdata:
