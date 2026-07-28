@@ -12,6 +12,7 @@ Then check:
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.routes import auth
 from app.config import settings
 
 app = FastAPI(
@@ -39,7 +40,8 @@ def health_check():
     }
 
 
-# Routers for auth, documents, etc. will be included here as they're built:
-# from app.api.routes import auth, documents
-# app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+
+# Document router will be included here once upload endpoints are built:
+# from app.api.routes import documents
 # app.include_router(documents.router, prefix="/api/documents", tags=["documents"])
