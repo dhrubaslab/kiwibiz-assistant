@@ -1,0 +1,6 @@
+# Add these to your existing requirements.txt (install with:
+# pip install -r requirements-additions.txt)
+
+pydantic-settings>=2.4.0
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
