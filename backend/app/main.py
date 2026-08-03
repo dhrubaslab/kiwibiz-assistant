@@ -9,10 +9,13 @@ Then check:
     http://localhost:8000/docs   (Swagger UI)
 """
 
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
-from app.api.routes import auth
+from app.api.routes import auth, documents
 from app.config import settings
 
 app = FastAPI(
@@ -41,7 +44,10 @@ def health_check():
 
 
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+app.include_router(documents.router, prefix="/api/documents", tags=["documents"])
 
-# Document router will be included here once upload endpoints are built:
-# from app.api.routes import documents
-# app.include_router(documents.router, prefix="/api/documents", tags=["documents"])
+# Serves locally-stored documents when STORAGE_BACKEND = "local" (see
+# app/config.py). If STORAGE_BACKEND = "s3", this directory simply stays
+# empty/unused and download links come from S3's presigned URLs instead.
+Path(settings.LOCAL_STORAGE_DIR).mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=settings.LOCAL_STORAGE_DIR), name="uploads")

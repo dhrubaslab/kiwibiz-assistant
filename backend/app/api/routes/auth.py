@@ -65,12 +65,6 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 
 
 @router.get("/me", response_model=UserResponse)
-def read_current_user(
-    current_user_id: str = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
+def read_current_user(current_user: User = Depends(get_current_user)):
     """Quick way to verify a token works end-to-end: pass it in and get the user back."""
-    user = db.query(User).filter(User.id == current_user_id).first()
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    return user
+    return current_user

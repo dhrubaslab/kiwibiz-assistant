@@ -28,8 +28,15 @@ class Settings(BaseSettings):
     # --- AWS S3 ---
     AWS_ACCESS_KEY_ID: str | None = None
     AWS_SECRET_ACCESS_KEY: str | None = None
-    AWS_REGION: str = "ap-southeast-2"
+    AWS_REGION: str = "us-east-1"
     S3_BUCKET_NAME: str | None = None
+
+    # --- Document storage backend ---
+    # Switch between "local" and "s3" by changing this one line.
+    STORAGE_BACKEND: str = "local"  # "local" or "s3"
+    # Where uploaded files live when STORAGE_BACKEND = "local".
+    # Relative to backend/ (the directory you run uvicorn from).
+    LOCAL_STORAGE_DIR: str = "storage/uploads"
 
     # --- OpenAI ---
     OPENAI_API_KEY: str | None = None

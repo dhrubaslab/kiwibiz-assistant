@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.core.security import decode_access_token
 from app.database import SessionLocal
+from app.models.user import User
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
@@ -29,7 +30,7 @@ def get_db():
 def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db),
-) -> str:
+) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -39,6 +40,12 @@ def get_current_user(
     if user_id is None:
         raise credentials_exception
 
-    # TODO (auth endpoints step): look up the User row by user_id via `db`
-    # and return the model instance instead of the raw id.
-    return user_id
+    user = db.query(User).filter(User.id == user_id).first()
+    if user is None:
+        raise credentials_exception
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This account has been deactivated.",
+        )
+    return user
