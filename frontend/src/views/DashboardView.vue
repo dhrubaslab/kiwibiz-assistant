@@ -1,0 +1,126 @@
+<script setup>
+import { ref, onMounted } from 'vue'
+import { useAuthStore } from '@/stores/auth'
+import AppShell from '@/layouts/AppShell.vue'
+import { listDocuments, uploadDocument, deleteDocument, downloadDocument } from '@/api/documents'
+const auth = useAuthStore()
+const documents = ref([])
+const loading = ref(true)
+const uploading = ref(false)
+const error = ref('')
+const fileInput = ref(null)
+
+async function loadDocuments() {
+  loading.value = true
+  try {
+    documents.value = await listDocuments()
+  } catch (e) {
+    error.value = e.message
+  } finally {
+    loading.value = false
+  }
+}
+
+async function handleFileChange(e) {
+  const file = e.target.files[0]
+  if (!file) return
+  uploading.value = true
+  error.value = ''
+  try {
+    await uploadDocument(file)
+    await loadDocuments()
+  } catch (err) {
+    error.value = err.message || 'Upload failed.'
+  } finally {
+    uploading.value = false
+    fileInput.value.value = ''
+  }
+}
+
+async function handleDelete(id) {
+  try {
+    await deleteDocument(id)
+    documents.value = documents.value.filter((d) => d.id !== id)
+  } catch (e) {
+    error.value = e.message
+  }
+}
+
+async function handleDownload(doc) {
+  try {
+    await downloadDocument(doc.id, doc.original_filename)
+  } catch (e) {
+    error.value = e.message
+  }
+}
+
+function formatSize(bytes) {
+  if (!bytes) return '—'
+  const kb = bytes / 1024
+  return kb > 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${kb.toFixed(0)} KB`
+}
+
+function formatDate(iso) {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleString('en-NZ', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+onMounted(() => {
+  auth.fetchMe().catch(() => {})
+  loadDocuments()
+})
+</script>
+
+<template>
+  <AppShell>
+    <div class="flex items-center justify-between mb-8">
+      <div>
+        <h2 class="font-display text-2xl">Documents</h2>
+        <p class="text-sm text-ink/60 mt-1">{{ auth.user?.business_name }}</p>
+      </div>
+
+      <label class="bg-amber hover:bg-amber/90 text-ink font-medium text-sm px-4 py-2 rounded cursor-pointer transition-colors">
+        {{ uploading ? 'Uploading…' : '+ Upload document' }}
+        <input ref="fileInput" type="file" class="hidden" @change="handleFileChange" :disabled="uploading" />
+      </label>
+    </div>
+
+    <p v-if="error" class="text-sm text-danger mb-4">{{ error }}</p>
+
+    <div v-if="loading" class="text-sm text-ink/50">Loading…</div>
+
+    <div v-else-if="documents.length === 0" class="border border-dashed border-sand rounded p-10 text-center">
+      <p class="text-ink/60 text-sm">No documents yet. Upload your first file to get started.</p>
+    </div>
+
+    <table v-else class="w-full text-sm">
+      <thead>
+        <tr class="border-b border-sand text-left text-ink/50">
+          <th class="py-2 font-medium">Name</th>
+          <th class="py-2 font-medium">Type</th>
+          <th class="py-2 font-medium font-mono">Size</th>
+          <th class="py-2 font-medium">Uploaded Date</th>
+          <th class="py-2 font-medium"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="doc in documents" :key="doc.id" class="border-b border-sand/60">
+          <td class="py-3">{{ doc.original_filename }}</td>
+          <td class="py-3 text-ink/60">{{ doc.content_type }}</td>
+          <td class="py-3 font-mono text-ink/60">{{ formatSize(doc.file_size_bytes) }}</td>
+          <td class="py-3 text-ink/60">{{ formatDate(doc.uploaded_at) }}</td>
+          <td class="py-3 text-right space-x-3">
+            <button @click="handleDownload(doc)" class="text-harbour hover:underline">Download</button>
+            <button @click="handleDelete(doc.id)" class="text-danger hover:underline">Delete</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </AppShell>
+</template>
