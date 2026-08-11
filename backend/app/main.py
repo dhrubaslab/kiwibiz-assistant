@@ -14,8 +14,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-
-from app.api.routes import auth, documents
+from app.api.routes import auth, companies, documents, users
 from app.config import settings
 
 app = FastAPI(
@@ -45,6 +44,8 @@ def health_check():
 
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(documents.router, prefix="/api/documents", tags=["documents"])
+app.include_router(companies.router, prefix="/api/companies", tags=["companies"])
+app.include_router(users.router, prefix="/api/users", tags=["users"])
 
 # Serves locally-stored documents when STORAGE_BACKEND = "local" (see
 # app/config.py). If STORAGE_BACKEND = "s3", this directory simply stays

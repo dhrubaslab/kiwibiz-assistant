@@ -1,26 +1,26 @@
 """
 Document endpoints: upload, list, get a download link, and delete.
 
-Every endpoint here requires auth (get_current_user) and every query is
-scoped to `owner_id == current_user.id` — one user can never see or touch
-another user's documents.
+Visibility is scoped to the COMPANY, not the individual uploader — any
+Admin or Staff in the same company can see and download every document
+belonging to that company. Deletion is more restrictive: Admin can delete
+any document in their company; Staff can only delete documents they
+uploaded themselves.
 """
 
 import uuid
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.api.deps import get_current_user, get_db
 from app.models.document import Document
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.schemas.document import DocumentDownloadResponse, DocumentResponse
 from app.services import storage
 
 router = APIRouter()
 
-# Keep this list narrow and explicit — it's the first line of defence
-# against unexpected file types landing in the RAG pipeline later.
 ALLOWED_CONTENT_TYPES = {
     "application/pdf",
     "text/plain",
@@ -44,8 +44,6 @@ async def upload_document(
             f"Allowed types: PDF, TXT, CSV, DOCX, XLSX.",
         )
 
-    # Read into memory to check size; fine for a 20MB ceiling. If limits grow
-    # much larger later, switch to streaming size checks instead.
     contents = await file.read()
     if len(contents) > MAX_FILE_SIZE_BYTES:
         raise HTTPException(
@@ -77,16 +75,20 @@ def list_documents(
 ):
     return (
         db.query(Document)
-        .filter(Document.owner_id == current_user.id)
+        .options(joinedload(Document.owner))
+        .join(User, Document.owner_id == User.id)
+        .filter(User.company_id == current_user.company_id)
         .order_by(Document.uploaded_at.desc())
         .all()
     )
 
-
-def _get_owned_document_or_404(document_id: uuid.UUID, current_user: User, db: Session) -> Document:
+def _get_company_document_or_404(document_id: uuid.UUID, current_user: User, db: Session) -> Document:
+    """Any document belonging to the current user's company — used for
+    read access (viewing, downloading). Company-scoped, not owner-scoped."""
     document = (
         db.query(Document)
-        .filter(Document.id == document_id, Document.owner_id == current_user.id)
+        .join(User, Document.owner_id == User.id)
+        .filter(Document.id == document_id, User.company_id == current_user.company_id)
         .first()
     )
     if not document:
@@ -100,7 +102,7 @@ def get_download_link(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    document = _get_owned_document_or_404(document_id, current_user, db)
+    document = _get_company_document_or_404(document_id, current_user, db)
     expires_in = 3600
     url = storage.get_download_url(document.s3_key, expires_in=expires_in)
     return DocumentDownloadResponse(download_url=url, expires_in_seconds=expires_in)
@@ -112,7 +114,16 @@ def delete_document(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    document = _get_owned_document_or_404(document_id, current_user, db)
+    document = _get_company_document_or_404(document_id, current_user, db)
+
+    is_owner = document.owner_id == current_user.id
+    is_admin = current_user.role == UserRole.ADMIN
+    if not (is_owner or is_admin):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only delete documents you uploaded.",
+        )
+
     storage.delete_file(document.s3_key)
     db.delete(document)
     db.commit()

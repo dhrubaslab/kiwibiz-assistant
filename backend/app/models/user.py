@@ -1,19 +1,23 @@
 """
-User model — one row per registered SME account.
-
-Password is never stored in plain text; `hashed_password` is produced by
-app.core.security.hash_password() during registration and checked with
-verify_password() during login.
+User model — one row per person, scoped to a Company (except Super Admin,
+who is platform-level and has no company).
 """
 
+import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, String
+from sqlalchemy import Boolean, DateTime, Enum as SAEnum, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+
+
+class UserRole(str, enum.Enum):
+    SUPER_ADMIN = "super_admin"  # SaaS provider — manages company subscriptions
+    ADMIN = "admin"              # Head of an organisation — manages their company + staff
+    STAFF = "staff"              # Regular company user
 
 
 class User(Base):
@@ -25,8 +29,17 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
 
-    # Business context — this is an SME tool, so tie the account to a business name
-    business_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    role: Mapped[UserRole] = mapped_column(
+        SAEnum(UserRole, name="user_role", native_enum=True),
+        default=UserRole.ADMIN,
+        nullable=False,
+    )
+
+    # Null only for Super Admin. Admin/Staff always belong to a company.
+    company_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("companies.id"), nullable=True
+    )
+    company: Mapped["Company"] = relationship("Company", back_populates="users")
 
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
@@ -40,4 +53,4 @@ class User(Base):
     )
 
     def __repr__(self) -> str:
-        return f"<User id={self.id} email={self.email}>"
+        return f"<User id={self.id} email={self.email} role={self.role}>"

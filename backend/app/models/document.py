@@ -48,7 +48,12 @@ class Document(Base):
 
     uploaded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
 
+
     owner: Mapped["User"] = relationship("User", back_populates="documents")
 
+    @property
+    def owner_email(self) -> str:
+        return self.owner.email
+    
     def __repr__(self) -> str:
         return f"<Document id={self.id} filename={self.original_filename} status={self.status}>"

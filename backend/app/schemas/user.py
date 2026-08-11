@@ -1,19 +1,23 @@
-"""
-Request/response schemas for user data. Kept separate from the SQLAlchemy
-model (app.models.user.User) so we never accidentally expose fields like
-hashed_password in an API response.
-"""
-
 import uuid
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
+from app.models.user import UserRole
+
 
 class UserCreate(BaseModel):
+    """Public self-registration: always creates a new Company with this
+    user as its Admin."""
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
-    business_name: str | None = None
+    company_name: str = Field(min_length=1, max_length=255)
+
+
+class StaffCreate(BaseModel):
+    """Used by an Admin to create a Staff account inside their own company."""
+    email: EmailStr
+    password: str = Field(min_length=8, max_length=128)
 
 
 class UserLogin(BaseModel):
@@ -21,10 +25,15 @@ class UserLogin(BaseModel):
     password: str
 
 
+class UserStatusUpdate(BaseModel):
+    is_active: bool
+
+
 class UserResponse(BaseModel):
     id: uuid.UUID
     email: EmailStr
-    business_name: str | None
+    role: UserRole
+    company_id: uuid.UUID | None
     is_active: bool
     created_at: datetime
 

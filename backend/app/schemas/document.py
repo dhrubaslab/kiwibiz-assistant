@@ -13,9 +13,8 @@ class DocumentResponse(BaseModel):
     file_size_bytes: int | None
     status: DocumentStatus
     uploaded_at: datetime
-
+    owner_email: str
     model_config = ConfigDict(from_attributes=True)
-
 
 class DocumentDownloadResponse(BaseModel):
     download_url: str

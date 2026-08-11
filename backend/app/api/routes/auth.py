@@ -1,21 +1,11 @@
-"""
-Auth endpoints: register a new SME account, log in to get a JWT.
-
-Login uses OAuth2PasswordRequestForm (the standard FastAPI/OAuth2 form
-shape: `username` + `password` fields) rather than a raw JSON body. This
-is deliberate — it's what powers the "Authorize" button in Swagger UI
-(/docs), so you can test protected endpoints straight from the browser
-without manually copying tokens. We just treat the `username` field as
-the user's email.
-"""
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
 from app.core.security import create_access_token, hash_password, verify_password
-from app.models.user import User
+from app.models.company import Company
+from app.models.user import User, UserRole
 from app.schemas.token import Token
 from app.schemas.user import UserCreate, UserResponse
 
@@ -31,10 +21,15 @@ def register(payload: UserCreate, db: Session = Depends(get_db)):
             detail="An account with this email already exists.",
         )
 
+    company = Company(name=payload.company_name)
+    db.add(company)
+    db.flush()  # assigns company.id without committing yet
+
     user = User(
         email=payload.email,
         hashed_password=hash_password(payload.password),
-        business_name=payload.business_name,
+        role=UserRole.ADMIN,
+        company_id=company.id,
     )
     db.add(user)
     db.commit()
@@ -44,7 +39,6 @@ def register(payload: UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    # form_data.username holds the email — OAuth2's form spec calls it "username"
     user = db.query(User).filter(User.email == form_data.username).first()
 
     if not user or not verify_password(form_data.password, user.hashed_password):
@@ -60,11 +54,17 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
             detail="This account has been deactivated.",
         )
 
+    if user.role != UserRole.SUPER_ADMIN:
+        if user.company is None or not user.company.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Your company's access has been disabled. Contact your administrator.",
+            )
+
     access_token = create_access_token(subject=str(user.id))
     return Token(access_token=access_token)
 
 
 @router.get("/me", response_model=UserResponse)
 def read_current_user(current_user: User = Depends(get_current_user)):
-    """Quick way to verify a token works end-to-end: pass it in and get the user back."""
     return current_user

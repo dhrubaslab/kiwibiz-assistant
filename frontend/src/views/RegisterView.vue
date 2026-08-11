@@ -6,7 +6,7 @@ import { useAuthStore } from '@/stores/auth'
 const auth = useAuthStore()
 const router = useRouter()
 
-const businessName = ref('')
+const companyName = ref('')
 const email = ref('')
 const password = ref('')
 const error = ref('')
@@ -17,7 +17,7 @@ async function handleSubmit() {
   loading.value = true
   try {
     await auth.register({
-      business_name: businessName.value,
+      company_name: companyName.value,
       email: email.value,
       password: password.value,
     })
@@ -38,10 +38,10 @@ async function handleSubmit() {
 
       <form @submit.prevent="handleSubmit" class="space-y-4">
         <div>
-          <label class="block text-sm font-medium mb-1" for="business">Business name</label>
+          <label class="block text-sm font-medium mb-1" for="business">Company name</label>
           <input
             id="business"
-            v-model="businessName"
+            v-model="companyName"
             type="text"
             required
             class="w-full border border-sand rounded px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-harbour"

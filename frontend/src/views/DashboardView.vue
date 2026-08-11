@@ -3,7 +3,10 @@ import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import AppShell from '@/layouts/AppShell.vue'
 import { listDocuments, uploadDocument, deleteDocument, downloadDocument } from '@/api/documents'
+import { getMyCompany } from '@/api/companies'
+
 const auth = useAuthStore()
+const company = ref(null)
 const documents = ref([])
 const loading = ref(true)
 const uploading = ref(false)
@@ -63,17 +66,14 @@ function formatSize(bytes) {
 function formatDate(iso) {
   if (!iso) return '—'
   return new Date(iso).toLocaleString('en-NZ', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
+    day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
   })
 }
 
 onMounted(() => {
   auth.fetchMe().catch(() => {})
   loadDocuments()
+  getMyCompany().then((c) => { company.value = c }).catch(() => {})
 })
 </script>
 
@@ -82,7 +82,12 @@ onMounted(() => {
     <div class="flex items-center justify-between mb-8">
       <div>
         <h2 class="font-display text-2xl">Documents</h2>
-        <p class="text-sm text-ink/60 mt-1">{{ auth.user?.business_name }}</p>
+        <p class="text-sm text-ink/60 mt-1 flex items-center gap-2">
+          <span>{{ company?.name }}</span>
+          <span v-if="auth.user?.role" class="text-xs uppercase tracking-wide bg-sand text-ink/70 px-2 py-0.5 rounded-full font-mono">
+            {{ auth.user.role.replace('_', ' ') }}
+          </span>
+        </p>
       </div>
 
       <label class="bg-amber hover:bg-amber/90 text-ink font-medium text-sm px-4 py-2 rounded cursor-pointer transition-colors">
@@ -92,7 +97,6 @@ onMounted(() => {
     </div>
 
     <p v-if="error" class="text-sm text-danger mb-4">{{ error }}</p>
-
     <div v-if="loading" class="text-sm text-ink/50">Loading…</div>
 
     <div v-else-if="documents.length === 0" class="border border-dashed border-sand rounded p-10 text-center">
@@ -103,15 +107,17 @@ onMounted(() => {
       <thead>
         <tr class="border-b border-sand text-left text-ink/50">
           <th class="py-2 font-medium">Name</th>
+          <th class="py-2 font-medium">Uploaded by</th>
           <th class="py-2 font-medium">Type</th>
           <th class="py-2 font-medium font-mono">Size</th>
-          <th class="py-2 font-medium">Uploaded Date</th>
+          <th class="py-2 font-medium">Uploaded</th>
           <th class="py-2 font-medium"></th>
         </tr>
       </thead>
       <tbody>
         <tr v-for="doc in documents" :key="doc.id" class="border-b border-sand/60">
           <td class="py-3">{{ doc.original_filename }}</td>
+          <td class="py-3 text-ink/60">{{ doc.owner_email }}</td>
           <td class="py-3 text-ink/60">{{ doc.content_type }}</td>
           <td class="py-3 font-mono text-ink/60">{{ formatSize(doc.file_size_bytes) }}</td>
           <td class="py-3 text-ink/60">{{ formatDate(doc.uploaded_at) }}</td>
