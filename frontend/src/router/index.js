@@ -35,6 +35,12 @@ const routes = [
   component: () => import('@/views/CompanyProfileView.vue'),
   meta: { requiresAuth: true, roles: ['admin', 'staff'] },
 },
+{
+  path: '/chat',
+  name: 'document-chat-view',
+  component: () => import('@/views/DocumentChatView.vue'),
+  meta: { requiresAuth: true, roles: ['admin', 'staff'] },
+},
 ]
 
 const router = createRouter({
