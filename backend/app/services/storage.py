@@ -45,3 +45,13 @@ def get_download_url(key: str, expires_in: int = 3600) -> str:
     if settings.STORAGE_BACKEND == "s3":
         return s3.generate_presigned_download_url(key, expires_in=expires_in)
     return f"/uploads/{key}"
+
+def download_file(key: str) -> bytes:
+    """
+    Returns the raw bytes of a stored file, regardless of backend.
+    Used by the RAG ingestion pipeline to read a document's content
+    for text extraction.
+    """
+    if settings.STORAGE_BACKEND == "s3":
+        return s3.download_fileobj(key)
+    return local_storage.file_path_for_key(key).read_bytes()

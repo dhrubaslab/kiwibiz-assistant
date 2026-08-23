@@ -9,8 +9,7 @@ uploaded themselves.
 """
 
 import uuid
-
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session, joinedload
 
 from app.api.deps import get_current_user, get_db
@@ -18,6 +17,7 @@ from app.models.document import Document
 from app.models.user import User, UserRole
 from app.schemas.document import DocumentDownloadResponse, DocumentResponse
 from app.services import storage
+from app.services.rag_pipeline import process_document
 
 router = APIRouter()
 
@@ -33,6 +33,7 @@ MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024  # 20 MB
 
 @router.post("/upload", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED)
 async def upload_document(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -65,6 +66,7 @@ async def upload_document(
     db.add(document)
     db.commit()
     db.refresh(document)
+    background_tasks.add_task(process_document, document.id)
     return document
 
 

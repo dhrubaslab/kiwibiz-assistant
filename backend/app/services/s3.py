@@ -82,3 +82,14 @@ def generate_presigned_download_url(key: str, expires_in: int = 3600) -> str:
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail=f"Failed to generate download link: {e}",
         )
+
+def download_fileobj(key: str) -> bytes:
+    """Downloads an S3 object and returns its raw bytes."""
+    try:
+        response = get_s3_client().get_object(Bucket=settings.S3_BUCKET_NAME, Key=key)
+        return response["Body"].read()
+    except ClientError as e:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Failed to download file from S3: {e}",
+        )

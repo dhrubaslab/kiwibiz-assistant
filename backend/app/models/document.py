@@ -51,6 +51,9 @@ class Document(Base):
 
     owner: Mapped["User"] = relationship("User", back_populates="documents")
 
+    chunks: Mapped[list["DocumentChunk"]] = relationship(
+        "DocumentChunk", back_populates="document", cascade="all, delete-orphan"
+    )
     @property
     def owner_email(self) -> str:
         return self.owner.email
