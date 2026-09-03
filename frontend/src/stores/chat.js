@@ -11,6 +11,9 @@ export const useChatStore = defineStore('chat', {
     conversationId: null,
     isAsking: false,
     error: null,
+
+    conversationList: [], // { id, preview, created_at }
+    isLoadingList: false,
   }),
 
   getters: {
@@ -70,7 +73,18 @@ export const useChatStore = defineStore('chat', {
         this.error = err?.message ?? 'Could not load that conversation.';
       }
     },
-
+    
+    async fetchConversationList() {
+      this.isLoadingList = true;
+      try {
+        this.conversationList = await ragApi.listConversations();
+      } catch (err) {
+        // Non-fatal — sidebar just stays empty/stale if this fails.
+        console.error('Failed to load conversation list:', err);
+      } finally {
+        this.isLoadingList = false;
+      }
+    },
     startNewConversation() {
       this.messages = [];
       this.conversationId = null;

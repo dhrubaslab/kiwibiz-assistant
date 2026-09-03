@@ -9,19 +9,29 @@ RAG Q&A endpoint. Flow per request:
 6. Persist both the user's question and the assistant's answer as Messages.
 7. Return the shape the frontend's chat store already expects.
 """
-
+import uuid
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
 from app.models.conversation import Conversation, Message, MessageRole
 from app.models.user import User
-from app.schemas.rag import AskRequest, AskResponse, SourceSchema
+from app.schemas.rag import (
+    AskRequest,
+    AskResponse,
+    ConversationDetail,
+    ConversationSummary,
+    MessageSchema,
+    SourceSchema,
+)
+
 from app.services.embeddings import embed_query
 from app.services.rag_qa import generate_answer
 from app.services.retrieval import retrieve_relevant_chunks
 
 router = APIRouter()
+
+PREVIEW_MAX_LENGTH = 80
 
 
 @router.post("/ask", response_model=AskResponse)
@@ -96,6 +106,61 @@ def _get_or_create_conversation(
     db.commit()
     db.refresh(conversation)
     return conversation
+
+
+@router.get("/conversations", response_model=list[ConversationSummary])
+def list_conversations(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    conversations = (
+        db.query(Conversation)
+        .filter(Conversation.user_id == current_user.id)
+        .order_by(Conversation.created_at.desc())
+        .all()
+    )
+ 
+    summaries = []
+    for conv in conversations:
+        first_user_message = next(
+            (m for m in conv.messages if m.role == MessageRole.USER), None
+        )
+        preview = first_user_message.content if first_user_message else "(empty conversation)"
+        if len(preview) > PREVIEW_MAX_LENGTH:
+            preview = preview[:PREVIEW_MAX_LENGTH].rstrip() + "…"
+ 
+        summaries.append(
+            ConversationSummary(id=conv.id, preview=preview, created_at=conv.created_at)
+        )
+    return summaries
+
+
+
+@router.get("/conversations/{conversation_id}", response_model=ConversationDetail)
+def get_conversation(
+    conversation_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    conversation = (
+        db.query(Conversation)
+        .filter(Conversation.id == conversation_id, Conversation.user_id == current_user.id)
+        .first()
+    )
+    if not conversation:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found.")
+ 
+    messages = [
+        MessageSchema(
+            id=m.id,
+            role=m.role.value,
+            text=m.content,
+            sources=[SourceSchema(**s) for s in m.sources] if m.sources else None,
+            timestamp=m.created_at,
+        )
+        for m in conversation.messages
+    ]
+    return ConversationDetail(id=conversation.id, messages=messages)
 
 
 def _build_history(conversation: Conversation, db: Session, exclude_message_id) -> list[dict]:

@@ -1,49 +1,60 @@
 <template>
-  <div class="doc-chat">
-    <header class="doc-chat__header">
-      <h1 class="doc-chat__title">Ask your documents</h1>
-      <button
-        v-if="chatStore.hasMessages"
-        class="doc-chat__new"
-        @click="chatStore.startNewConversation()"
-      >
-        New conversation
-      </button>
-    </header>
+  <div class="doc-chat-page">
+    <ConversationSidebar
+      :conversation-list="chatStore.conversationList"
+      :active-conversation-id="chatStore.conversationId"
+      :is-loading-list="chatStore.isLoadingList"
+      @select="handleSelectConversation"
+      @new="handleNewConversation"
+    />
 
-    <div ref="scrollRef" class="doc-chat__scroll">
-      <div v-if="!chatStore.hasMessages" class="doc-chat__empty">
-        <p class="doc-chat__empty-title">No questions asked yet.</p>
-        <p class="doc-chat__empty-body">
-          Ask something like "What's our refund policy?" or "Summarise the Q3 supplier contract."
-          Kiwi-Biz Assistant will search your company's documents and answer with sources attached.
-        </p>
+    <div class="doc-chat">
+      <header class="doc-chat__header">
+        <h1 class="doc-chat__title">Ask your documents</h1>
+        <button
+          v-if="chatStore.hasMessages"
+          class="doc-chat__new"
+          @click="handleNewConversation"
+        >
+          New conversation
+        </button>
+      </header>
+
+      <div ref="scrollRef" class="doc-chat__scroll">
+        <div v-if="!chatStore.hasMessages" class="doc-chat__empty">
+          <p class="doc-chat__empty-title">No questions asked yet.</p>
+          <p class="doc-chat__empty-body">
+            Ask something like "What's our refund policy?" or "Summarise the Q3 supplier contract."
+            Kiwi-Biz Assistant will search your company's documents and answer with sources attached.
+          </p>
+        </div>
+
+        <ChatMessage
+          v-for="message in chatStore.messages"
+          :key="message.id"
+          :message="message"
+        />
+
+        <div v-if="chatStore.isAsking" class="doc-chat__typing">
+          <span class="doc-chat__typing-dot"></span>
+          <span class="doc-chat__typing-dot"></span>
+          <span class="doc-chat__typing-dot"></span>
+        </div>
       </div>
 
-      <ChatMessage
-        v-for="message in chatStore.messages"
-        :key="message.id"
-        :message="message"
-      />
-
-      <div v-if="chatStore.isAsking" class="doc-chat__typing">
-        <span class="doc-chat__typing-dot"></span>
-        <span class="doc-chat__typing-dot"></span>
-        <span class="doc-chat__typing-dot"></span>
+      <div class="doc-chat__input">
+        <ChatInput :disabled="chatStore.isAsking" @submit="handleAsk" />
       </div>
-    </div>
-
-    <div class="doc-chat__input">
-      <ChatInput :disabled="chatStore.isAsking" @submit="handleAsk" />
     </div>
   </div>
 </template>
 
 <script setup>
-import { nextTick, ref, watch } from 'vue';
+import { nextTick, onMounted, ref, watch } from 'vue';
 import { useChatStore } from '../stores/chat';
 import ChatMessage from '../components/chat/ChatMessage.vue';
 import ChatInput from '../components/chat/ChatInput.vue';
+import ConversationSidebar from '../components/chat/ConversationSidebar.vue';
 
 const chatStore = useChatStore();
 const scrollRef = ref(null);
@@ -51,6 +62,19 @@ const scrollRef = ref(null);
 async function handleAsk(question) {
   await chatStore.askQuestion(question);
 }
+
+async function handleSelectConversation(conversationId) {
+  if (conversationId === chatStore.conversationId) return;
+  await chatStore.loadConversation(conversationId);
+}
+
+function handleNewConversation() {
+  chatStore.startNewConversation();
+}
+
+onMounted(() => {
+  chatStore.fetchConversationList();
+});
 
 watch(
   () => chatStore.messages.length,
@@ -64,13 +88,21 @@ watch(
 </script>
 
 <style scoped>
+.doc-chat-page {
+  display: flex;
+  gap: 1.5rem;
+  height: 100%;
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
 .doc-chat {
   display: flex;
   flex-direction: column;
   height: 100%;
-  max-width: 48rem;
-  margin: 0 auto;
-  padding: 1.5rem;
+  flex: 1;
+  min-width: 0;
   gap: 1rem;
 }
 
