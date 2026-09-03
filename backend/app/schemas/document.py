@@ -3,7 +3,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
-from app.models.document import DocumentStatus
+from app.models.document import DocumentCategory, DocumentStatus
 
 
 class DocumentResponse(BaseModel):
@@ -12,9 +12,11 @@ class DocumentResponse(BaseModel):
     content_type: str | None
     file_size_bytes: int | None
     status: DocumentStatus
+    category: DocumentCategory
     uploaded_at: datetime
     owner_email: str
     model_config = ConfigDict(from_attributes=True)
+
 
 class DocumentDownloadResponse(BaseModel):
     download_url: str

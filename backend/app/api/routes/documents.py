@@ -9,11 +9,11 @@ uploaded themselves.
 """
 
 import uuid
-from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session, joinedload
 
 from app.api.deps import get_current_user, get_db
-from app.models.document import Document
+from app.models.document import Document, DocumentCategory
 from app.models.user import User, UserRole
 from app.schemas.document import DocumentDownloadResponse, DocumentResponse
 from app.services import storage

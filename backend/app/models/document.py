@@ -24,7 +24,13 @@ class DocumentStatus(str, enum.Enum):
     PROCESSED = "processed"
     FAILED = "failed"
 
-
+class DocumentCategory(str, enum.Enum):
+    POLICY = "policy"
+    CONTRACT = "contract"
+    FINANCIAL = "financial"
+    HR = "hr"
+    OTHER = "other"
+    
 class Document(Base):
     __tablename__ = "documents"
 
@@ -46,6 +52,12 @@ class Document(Base):
         nullable=False,
     )
 
+    category: Mapped[DocumentCategory] = mapped_column(
+        Enum(DocumentCategory, name="document_category"),
+        default=DocumentCategory.OTHER,
+        nullable=False,
+    )
+    
     uploaded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
 
 

@@ -1,4 +1,6 @@
+
 <template>
+  <AppShell>
   <div class="doc-chat-page">
     <ConversationSidebar
       :conversation-list="chatStore.conversationList"
@@ -47,9 +49,13 @@
       </div>
     </div>
   </div>
+  </AppShell>
 </template>
 
 <script setup>
+
+import AppShell from '@/layouts/AppShell.vue';
+
 import { nextTick, onMounted, ref, watch } from 'vue';
 import { useChatStore } from '../stores/chat';
 import ChatMessage from '../components/chat/ChatMessage.vue';

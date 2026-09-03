@@ -10,6 +10,53 @@ export function uploadDocument(file) {
   return request('/api/documents/upload', { method: 'POST', body: form, isForm: true })
 }
 
+/**
+ * Uploads a document with a category and reports progress via onProgress(percent).
+ * Uses XMLHttpRequest directly because the fetch API (used by client.js) has
+ * no upload progress event — XHR is the only way to get real percentage updates.
+ */
+export function uploadDocumentWithProgress(file, category, onProgress) {
+  return new Promise((resolve, reject) => {
+    const form = new FormData()
+    form.append('file', file)
+    form.append('category', category)
+
+    const xhr = new XMLHttpRequest()
+    xhr.open('POST', `${BASE_URL}/api/documents/upload`)
+
+    const token = localStorage.getItem('kiwibiz_token')
+    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`)
+
+    xhr.upload.addEventListener('progress', (event) => {
+      if (event.lengthComputable && onProgress) {
+        onProgress(Math.round((event.loaded / event.total) * 100))
+      }
+    })
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          resolve(JSON.parse(xhr.responseText))
+        } catch {
+          resolve(null)
+        }
+      } else {
+        let detail = 'Upload failed.'
+        try {
+          detail = JSON.parse(xhr.responseText)?.detail || detail
+        } catch {}
+        const err = new Error(detail)
+        err.status = xhr.status
+        reject(err)
+      }
+    }
+
+    xhr.onerror = () => reject(new Error('Network error during upload.'))
+
+    xhr.send(form)
+  })
+}
+
 export function deleteDocument(id) {
   return request(`/api/documents/${id}`, { method: 'DELETE' })
 }

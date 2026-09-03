@@ -2,16 +2,24 @@
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import AppShell from '@/layouts/AppShell.vue'
-import { listDocuments, uploadDocument, deleteDocument, downloadDocument } from '@/api/documents'
+import { listDocuments, deleteDocument, downloadDocument } from '@/api/documents'
 import { getMyCompany } from '@/api/companies'
+import DocumentUploadPanel from '@/components/DocumentUploadPanel.vue'
 
 const auth = useAuthStore()
 const company = ref(null)
 const documents = ref([])
 const loading = ref(true)
-const uploading = ref(false)
 const error = ref('')
-const fileInput = ref(null)
+const showUploadPanel = ref(false)
+
+const CATEGORY_LABELS = {
+  policy: 'Policy',
+  contract: 'Contract',
+  financial: 'Financial',
+  hr: 'HR',
+  other: 'Other',
+}
 
 async function loadDocuments() {
   loading.value = true
@@ -24,20 +32,9 @@ async function loadDocuments() {
   }
 }
 
-async function handleFileChange(e) {
-  const file = e.target.files[0]
-  if (!file) return
-  uploading.value = true
-  error.value = ''
-  try {
-    await uploadDocument(file)
-    await loadDocuments()
-  } catch (err) {
-    error.value = err.message || 'Upload failed.'
-  } finally {
-    uploading.value = false
-    fileInput.value.value = ''
-  }
+async function handleUploaded() {
+  showUploadPanel.value = false
+  await loadDocuments()
 }
 
 async function handleDelete(id) {
@@ -70,6 +67,10 @@ function formatDate(iso) {
   })
 }
 
+function categoryLabel(category) {
+  return CATEGORY_LABELS[category] || category
+}
+
 onMounted(() => {
   auth.fetchMe().catch(() => {})
   loadDocuments()
@@ -90,10 +91,16 @@ onMounted(() => {
         </p>
       </div>
 
-      <label class="bg-amber hover:bg-amber/90 text-ink font-medium text-sm px-4 py-2 rounded cursor-pointer transition-colors">
-        {{ uploading ? 'Uploading…' : '+ Upload document' }}
-        <input ref="fileInput" type="file" class="hidden" @change="handleFileChange" :disabled="uploading" />
-      </label>
+      <button
+        class="bg-amber hover:bg-amber/90 text-ink font-medium text-sm px-4 py-2 rounded transition-colors"
+        @click="showUploadPanel = !showUploadPanel"
+      >
+        {{ showUploadPanel ? 'Cancel' : '+ Upload document' }}
+      </button>
+    </div>
+
+    <div v-if="showUploadPanel" class="mb-8">
+      <DocumentUploadPanel @uploaded="handleUploaded" />
     </div>
 
     <p v-if="error" class="text-sm text-danger mb-4">{{ error }}</p>
@@ -107,6 +114,7 @@ onMounted(() => {
       <thead>
         <tr class="border-b border-sand text-left text-ink/50">
           <th class="py-2 font-medium">Name</th>
+          <th class="py-2 font-medium">Category</th>
           <th class="py-2 font-medium">Uploaded by</th>
           <th class="py-2 font-medium">Type</th>
           <th class="py-2 font-medium font-mono">Size</th>
@@ -117,6 +125,11 @@ onMounted(() => {
       <tbody>
         <tr v-for="doc in documents" :key="doc.id" class="border-b border-sand/60">
           <td class="py-3">{{ doc.original_filename }}</td>
+          <td class="py-3">
+            <span class="text-xs uppercase tracking-wide bg-sand text-ink/70 px-2 py-0.5 rounded-full font-mono">
+              {{ categoryLabel(doc.category) }}
+            </span>
+          </td>
           <td class="py-3 text-ink/60">{{ doc.owner_email }}</td>
           <td class="py-3 text-ink/60">{{ doc.content_type }}</td>
           <td class="py-3 font-mono text-ink/60">{{ formatSize(doc.file_size_bytes) }}</td>
