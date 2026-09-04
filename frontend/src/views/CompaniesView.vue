@@ -1,4 +1,6 @@
 <script setup>
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import { ref, onMounted } from 'vue'
 import AppShell from '@/layouts/AppShell.vue'
 import { listCompanies, createCompany, updateSubscription } from '@/api/companies'
@@ -15,10 +17,23 @@ const error = ref('')
 const updatingId = ref(null)
 const expiryDrafts = ref({})
 
+const router = useRouter()
+const auth = useAuthStore()
+
 // --- create company form ---
 const showCreateForm = ref(false)
 const creating = ref(false)
 const newCompany = ref({ name: '', contact_email: '', phone: '' })
+
+async function handleLoginAs(c) {
+  error.value = ''
+  try {
+    await auth.loginAs(c.id)
+    router.push('/dashboard')
+  } catch (e) {
+    error.value = e.message || 'Could not log in as this company\'s admin.'
+  }
+}
 
 async function loadCompanies() {
   loading.value = true
@@ -179,6 +194,11 @@ onMounted(loadCompanies)
 
         <div class="flex items-center gap-3 shrink-0 flex-wrap">
         <RouterLink :to="`/companies/${c.id}/edit`" class="text-sm font-medium text-harbour hover:underline">Edit</RouterLink>
+        
+        <button @click="handleLoginAs(c)"
+          class="text-sm font-medium text-teal-700 hover:underline">Login-As
+        </button>
+        
           <select
             :value="c.subscription_type"
             @change="changeSubscriptionType(c, $event.target.value)"

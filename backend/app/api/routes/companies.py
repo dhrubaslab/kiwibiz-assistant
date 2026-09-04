@@ -1,6 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+import logging
+from datetime import timedelta
+
+from app.core.security import create_access_token
+from app.schemas.token import Token
+
 from app.api.deps import RequireRole, get_db
 from app.models.company import Company
 from app.models.user import User, UserRole
@@ -8,6 +14,9 @@ from app.schemas.company import CompanyCreate, CompanyResponse, CompanyUpdate, S
 
 router = APIRouter()
 
+logger = logging.getLogger(__name__)
+
+IMPERSONATION_TOKEN_EXPIRE_MINUTES = 30
 
 # --- Admin: manage their own company's profile ---
 
@@ -102,3 +111,45 @@ def update_subscription(
     db.commit()
     db.refresh(company)
     return company
+
+@router.post("/{company_id}/login-as", response_model=Token)
+def login_as_company_admin(
+    company_id: str,
+    current_user: User = Depends(RequireRole(UserRole.SUPER_ADMIN)),
+    db: Session = Depends(get_db),
+):
+    """
+    Issues a short-lived access token for an Admin of the target company,
+    so a Super Admin can log in as them for maintenance/support purposes.
+
+    The issued token carries an `impersonated_by` claim recording the
+    Super Admin's own user id, and expires in 30 minutes regardless of the
+    normal token lifetime — impersonation sessions should be short and
+    re-requested if more time is needed, not indefinite.
+    """
+    company = db.query(Company).filter(Company.id == company_id).first()
+    if not company:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Company not found.")
+
+    target_admin = (
+        db.query(User)
+        .filter(User.company_id == company_id, User.role == UserRole.ADMIN, User.is_active == True)
+        .first()
+    )
+    if not target_admin:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            "No active admin account found for this company.",
+        )
+
+    logger.info(
+        "Super Admin %s logging in as Admin %s (company %s)",
+        current_user.id, target_admin.id, company_id,
+    )
+
+    access_token = create_access_token(
+        subject=str(target_admin.id),
+        expires_delta=timedelta(minutes=IMPERSONATION_TOKEN_EXPIRE_MINUTES),
+        extra_claims={"impersonated_by": str(current_user.id)},
+    )
+    return Token(access_token=access_token)

@@ -27,3 +27,7 @@ export function updateCompany(id, payload) {
 export function updateSubscription(companyId, payload) {
   return request(`/api/companies/${companyId}/subscription`, { method: 'PATCH', body: payload })
 }
+
+export function loginAsCompany(companyId) {
+  return request(`/api/companies/${companyId}/login-as`, { method: 'POST' })
+}

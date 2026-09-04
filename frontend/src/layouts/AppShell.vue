@@ -9,10 +9,18 @@ function handleLogout() {
   auth.logout()
   router.push({ name: 'login' })
 }
+function handleExitImpersonation() {
+  auth.exitImpersonation().then(() => router.push('/companies'))
+}
+
 </script>
 
 <template>
-  <div class="min-h-screen flex bg-paper text-ink">
+  <div class="min-h-screen flex bg-paper text-ink" :class="{ 'pt-9': auth.isImpersonating }">
+  <div v-if="auth.isImpersonating" class="fixed top-0 left-0 right-0 z-50 bg-amber text-ink text-sm font-medium text-center py-2">
+    Viewing as {{ auth.user?.email }} (impersonating) —
+    <button @click="handleExitImpersonation" class="underline font-semibold">Exit impersonation</button>
+  </div>
     <aside class="w-60 shrink-0 border-r border-sand flex flex-col justify-between py-8 px-5">
       <div>
         <h1 class="font-display text-xl tracking-tight mb-10">Kiwi-Biz <span class="text-harbour">Assistant</span></h1>

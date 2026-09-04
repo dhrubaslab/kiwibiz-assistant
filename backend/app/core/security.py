@@ -25,15 +25,22 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
 
-def create_access_token(subject: str, expires_delta: timedelta | None = None) -> str:
+def create_access_token(subject: str, expires_delta: timedelta | None = None, extra_claims: dict | None = None,) -> str:
     """
     Create a signed JWT. `subject` is typically the user's id or email —
     whatever you want to identify the user by on subsequent requests.
+
+    `extra_claims` merges additional fields into the token payload — used,
+    for example, by the Super Admin "Login-As" feature to record which
+    admin actually initiated the session (impersonated_by), without
+    changing the signature for existing callers.
     """
     expire = datetime.now(timezone.utc) + (
         expires_delta or timedelta(minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES)
     )
     to_encode = {"sub": subject, "exp": expire}
+    if extra_claims:
+        to_encode.update(extra_claims)
     return jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
 
