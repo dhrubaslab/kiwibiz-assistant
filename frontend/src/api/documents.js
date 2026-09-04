@@ -10,6 +10,9 @@ export function uploadDocument(file) {
   return request('/api/documents/upload', { method: 'POST', body: form, isForm: true })
 }
 
+export function getDocument(id) {
+  return request(`/api/documents/${id}`)
+}
 /**
  * Uploads a document with a category and reports progress via onProgress(percent).
  * Uses XMLHttpRequest directly because the fetch API (used by client.js) has
@@ -84,6 +87,28 @@ export async function downloadDocument(id, filename) {
   a.click()
   a.remove()
   window.URL.revokeObjectURL(url)
+}
+
+/**
+ * Fetches a document's raw bytes as a Blob, for inline viewing (as opposed
+ * to downloadDocument, which triggers a save-to-disk). Reuses the same
+ * signed-URL flow: get the download link, then fetch the actual bytes.
+ */
+export async function getDocumentBlob(id) {
+  const token = localStorage.getItem('kiwibiz_token')
+ 
+  const linkRes = await fetch(`${BASE_URL}/api/documents/${id}/download`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (!linkRes.ok) throw new Error('Could not get file link.')
+  const { download_url } = await linkRes.json()
+ 
+  const fileUrl = download_url.startsWith('http') ? download_url : `${BASE_URL}${download_url}`
+ 
+  const fileRes = await fetch(fileUrl)
+  if (!fileRes.ok) throw new Error('Could not load file.')
+ 
+  return fileRes.blob()
 }
 
 function timestampedFilename(filename) {

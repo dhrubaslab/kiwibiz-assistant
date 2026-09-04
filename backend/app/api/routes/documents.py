@@ -109,6 +109,14 @@ def get_download_link(
     url = storage.get_download_url(document.s3_key, expires_in=expires_in)
     return DocumentDownloadResponse(download_url=url, expires_in_seconds=expires_in)
 
+@router.get("/{document_id}", response_model=DocumentResponse)
+def get_document(
+    document_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return _get_company_document_or_404(document_id, current_user, db)
+
 
 @router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_document(
