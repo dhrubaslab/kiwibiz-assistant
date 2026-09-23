@@ -75,6 +75,20 @@ function handleExitImpersonation() {
               />
               <span :class="isActive ? 'text-ink' : 'text-ink/60 hover:text-ink'">Staff</span>
             </RouterLink>
+
+            <RouterLink
+              v-if="auth.user?.role === 'admin'"
+              to="/stats"
+              class="relative block pl-4 py-2 text-sm font-medium rounded-r transition-colors"
+              v-slot="{ isActive }"
+            >
+              <span
+                class="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-[3px] rounded-full transition-colors"
+                :class="isActive ? 'bg-amber' : 'bg-transparent'"
+              />
+              <span :class="isActive ? 'text-ink' : 'text-ink/60 hover:text-ink'">Stats</span>
+            </RouterLink>
+
             <RouterLink
               to="/chat"
               class="relative block pl-4 py-2 text-sm font-medium rounded-r transition-colors"

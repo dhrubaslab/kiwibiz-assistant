@@ -18,6 +18,12 @@ const routes = [
     meta: { requiresAuth: true, roles: ['admin'] },
   },
   {
+    path: '/stats',
+    name: 'stats-dashboard',
+    component: () => import('@/views/StatsDashboardView.vue'),
+    meta: { requiresAuth: true, roles: ['admin'] },
+  },
+  {
     path: '/companies',
     name: 'companies',
     component: () => import('@/views/CompaniesView.vue'),
