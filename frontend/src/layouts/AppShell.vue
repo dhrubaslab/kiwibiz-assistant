@@ -101,7 +101,7 @@ function handleExitImpersonation() {
       </div>
     </aside>
 
-    <main class="flex-1 px-10 py-8">
+    <main class="flex-1 pl-1 pr-10 py-8">
       <slot />
     </main>
   </div>

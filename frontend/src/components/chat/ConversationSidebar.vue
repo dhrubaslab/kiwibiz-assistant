@@ -64,8 +64,10 @@ function formatDate(isoString) {
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
+  background: var(--color-paper, #f7f5f0);   /* NEW — light background on the panel */
   border-right: 1px solid var(--color-sand, #dcd6c9);
-  padding-right: 1rem;
+  border-radius: 0.75rem;                     /* NEW — softens the panel edge */
+  padding: 0.85rem;                           /* was padding-right: 1rem only */
   height: 100%;
 }
 
@@ -78,7 +80,7 @@ function formatDate(isoString) {
 
 .convo-sidebar__title {
   font-family: var(--font-mono, 'JetBrains Mono', monospace);
-  font-size: 0.7rem;
+  font-size: 0.9rem;   /* was 0.7rem */
   letter-spacing: 0.1em;
   color: var(--color-pine, #0f1e1c);
   opacity: 0.5;
@@ -86,13 +88,14 @@ function formatDate(isoString) {
 
 .convo-sidebar__new {
   font-family: var(--font-body, 'Inter', sans-serif);
-  font-size: 0.75rem;
+  font-size: var(--chat-font-size-sm, 0.85rem);   /* wired into shared scale */
   background: transparent;
   border: 1px solid var(--color-sand, #dcd6c9);
   border-radius: 0.4rem;
-  padding: 0.25rem 0.55rem;
+  padding: 0.3rem 0.6rem;
   color: var(--color-teal, #1b6f63);
   cursor: pointer;
+  transition: background-color 0.15s ease;
 }
 
 .convo-sidebar__new:hover {
@@ -109,7 +112,7 @@ function formatDate(isoString) {
 
 .convo-sidebar__empty {
   font-family: var(--font-body, 'Inter', sans-serif);
-  font-size: 0.8rem;
+  font-size: var(--chat-font-size-sm, 0.85rem);
   color: var(--color-pine, #0f1e1c);
   opacity: 0.5;
 }
@@ -121,11 +124,12 @@ function formatDate(isoString) {
   gap: 0.15rem;
   text-align: left;
   background: transparent;
-  border: none;
+  border: 1px solid transparent;   /* reserves space so active border doesn't shift layout */
   border-radius: 0.5rem;
-  padding: 0.5rem 0.6rem;
+  padding: 0.55rem 0.65rem;
   cursor: pointer;
   width: 100%;
+  transition: background-color 0.15s ease;
 }
 
 .convo-sidebar__item:hover {
@@ -133,13 +137,13 @@ function formatDate(isoString) {
 }
 
 .convo-sidebar__item--active {
-  background: var(--color-paper, #f7f5f0);
-  border: 1px solid var(--color-teal, #1b6f63);
+  background: #ffffff;   /* lifts the active item above the paper background */
+  border-color: var(--color-teal, #1b6f63);
 }
 
 .convo-sidebar__preview {
   font-family: var(--font-body, 'Inter', sans-serif);
-  font-size: 0.82rem;
+  font-size: var(--chat-font-size-sm, 0.9rem);   /* was 0.82rem, now shared+bumped */
   color: var(--color-pine, #0f1e1c);
   white-space: nowrap;
   overflow: hidden;
@@ -149,7 +153,7 @@ function formatDate(isoString) {
 
 .convo-sidebar__date {
   font-family: var(--font-mono, 'JetBrains Mono', monospace);
-  font-size: 0.65rem;
+  font-size: 0.7rem;   /* was 0.65rem */
   color: var(--color-pine, #0f1e1c);
   opacity: 0.45;
 }

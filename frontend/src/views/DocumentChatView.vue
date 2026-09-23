@@ -1,4 +1,3 @@
-
 <template>
   <AppShell>
   <div class="doc-chat-page">
@@ -24,7 +23,7 @@
 
       <div ref="scrollRef" class="doc-chat__scroll">
         <div v-if="!chatStore.hasMessages" class="doc-chat__empty">
-          <p class="doc-chat__empty-title">No questions asked yet.</p>
+          <p class="doc-chat__empty-title">No questions asked yet</p>
           <p class="doc-chat__empty-body">
             Ask something like "What's our refund policy?" or "Summarise the Q3 supplier contract."
             Kiwi-Biz Assistant will search your company's documents and answer with sources attached.
@@ -37,7 +36,7 @@
           :message="message"
         />
 
-        <div v-if="chatStore.isAsking" class="doc-chat__typing">
+        <div v-if="chatStore.isAsking" class="doc-chat__typing" aria-live="polite" aria-label="Assistant is typing">
           <span class="doc-chat__typing-dot"></span>
           <span class="doc-chat__typing-dot"></span>
           <span class="doc-chat__typing-dot"></span>
@@ -95,12 +94,20 @@ watch(
 
 <style scoped>
 .doc-chat-page {
+  --chat-font-size-sm: 1rem;      /* was 0.9rem */
+  --chat-font-size-base: 1.1rem;  /* was 1rem */
+  --chat-font-size-lg: 1.25rem;   /* was 1.15rem */
+  --chat-font-size-xl: 1.7rem;    /* was 1.6rem */
+  --chat-line-height: 1.6;
+
+  font-size: var(--chat-font-size-base);
+  line-height: var(--chat-line-height);
+
   display: flex;
-  gap: 1.5rem;
+  gap: 0.75rem;          /* was 1.5rem — tighter gap between menu bar and history list */
   height: 100%;
-  max-width: 64rem;
-  margin: 0 auto;
-  padding: 1.5rem;
+  width: 100%;            /* was max-width: 64rem + margin: 0 auto (centered the whole page) */
+  padding: -1rem 1.5rem 1rem 0.75rem;
 }
 
 .doc-chat {
@@ -116,24 +123,27 @@ watch(
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--color-sand, #dcd6c9);
 }
 
 .doc-chat__title {
   font-family: var(--font-display, 'Fraunces', serif);
-  font-size: 1.5rem;
+  font-size: var(--chat-font-size-xl);
   color: var(--color-pine, #0f1e1c);
   margin: 0;
 }
 
 .doc-chat__new {
   font-family: var(--font-body, 'Inter', sans-serif);
-  font-size: 0.85rem;
+  font-size: var(--chat-font-size-sm);
   background: transparent;
   border: 1px solid var(--color-sand, #dcd6c9);
   border-radius: 0.5rem;
-  padding: 0.4rem 0.75rem;
+  padding: 0.45rem 0.85rem;
   color: var(--color-teal, #1b6f63);
   cursor: pointer;
+  transition: background-color 0.15s ease;
 }
 
 .doc-chat__new:hover {
@@ -145,8 +155,8 @@ watch(
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  padding-right: 0.25rem;
+  gap: 1rem;
+  padding: 0.5rem 0.5rem 0.5rem 0.25rem;
 }
 
 .doc-chat__empty {
@@ -158,21 +168,22 @@ watch(
 
 .doc-chat__empty-title {
   font-family: var(--font-display, 'Fraunces', serif);
-  font-size: 1.1rem;
-  margin-bottom: 0.4rem;
+  font-size: var(--chat-font-size-lg);
+  margin-bottom: 0.5rem;
 }
 
 .doc-chat__empty-body {
   font-family: var(--font-body, 'Inter', sans-serif);
-  font-size: 0.9rem;
+  font-size: var(--chat-font-size-base);
   opacity: 0.7;
-  line-height: 1.5;
+  line-height: var(--chat-line-height);
 }
 
 .doc-chat__typing {
   display: flex;
   gap: 0.3rem;
   padding: 0.75rem 1rem;
+  align-self: flex-start;
 }
 
 .doc-chat__typing-dot {
