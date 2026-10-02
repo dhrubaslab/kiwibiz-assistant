@@ -1,7 +1,7 @@
 import request, { BASE_URL } from './client'
 
 export function listDocuments() {
-  return request('/api/documents')
+  return request('/api/documents/')
 }
 
 export function uploadDocument(file) {
