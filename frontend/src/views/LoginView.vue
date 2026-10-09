@@ -28,8 +28,8 @@ async function handleSubmit() {
 <template>
   <div class="min-h-screen flex items-center justify-center bg-paper px-4">
     <div class="w-full max-w-sm">
-      <h1 class="font-display text-3xl mb-1">Welcome back</h1>
-      <p class="text-ink/60 text-sm mb-8">Sign in to your Kiwi-Biz Assistant.</p>
+      <h1 class="font-display text-3xl mb-1">Welcome to KiwiBiz Assistant</h1>
+      <p class="text-ink/60 text-sm mb-8">I am your personal assistant.</p>
 
       <form @submit.prevent="handleSubmit" class="space-y-4">
         <div>
